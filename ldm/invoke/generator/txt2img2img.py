@@ -75,19 +75,19 @@ class Txt2Img2Img(Generator):
             )
 
             t_enc = int(strength * steps)
-            ddim_sampler = DDIMSampler(self.model, device=self.model.device)
-            ddim_sampler.make_schedule(
-                    ddim_num_steps=steps, ddim_eta=ddim_eta, verbose=False
-            )
+            # ddim_sampler = DDIMSampler(self.model, device=self.model.device)
+            # ddim_sampler.make_schedule(
+            #         ddim_num_steps=steps, ddim_eta=ddim_eta, verbose=False
+            # )
 
-            z_enc = ddim_sampler.stochastic_encode(
+            z_enc = sampler.stochastic_encode(
                 samples,
                 torch.tensor([t_enc]).to(self.model.device),
                 noise=self.get_noise(width,height,False)
             )
 
             # decode it
-            samples = ddim_sampler.decode(
+            samples = sampler.decode(
                 z_enc,
                 c,
                 t_enc,

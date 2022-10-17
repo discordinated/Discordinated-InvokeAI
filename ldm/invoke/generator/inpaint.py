@@ -51,11 +51,12 @@ class Inpaint(Img2Img):
 
         @torch.no_grad()
         def make_image(x_T):
+
             # encode (scaled latent)
             z_enc = sampler.stochastic_encode(
                 self.init_latent,
                 torch.tensor([t_enc]).to(self.model.device),
-                noise=x_T
+                noise=x_T * (1.0-mask_image)
             )
 
             # to replace masked area with latent noise, weighted by inpaint_replace strength

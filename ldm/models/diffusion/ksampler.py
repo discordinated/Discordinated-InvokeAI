@@ -133,10 +133,33 @@ class KSampler(Sampler):
             )
         return samples
 
-    # this is a no-op, provided here for compatibility with ddim and plms samplers
+    # cribbing from https://github.com/hafriedlander/stable-diffusion-grpcserver/blob/b75deaa743c77415f277fedd37494a661a0cbaf2/sdgrpcserver/pipeline/old_schedulers/scheduling_euler_discrete.py
     @torch.no_grad()
     def stochastic_encode(self, x0, t, use_original_steps=False, noise=None):
-        return x0
+        sigmas = self.match_shape(self.sigmas[t], noise)
+        return x0 + noise * sigmas
+
+    def match_shape(self, values:torch.Tensor, broadcast_array:torch.Tensor):
+        """
+        Turns a 1-D array into an array or tensor with len(broadcast_array.shape) dims.
+
+        Args:
+            values: an array or tensor of values to extract.
+            broadcast_array: an array with a larger shape of K dimensions with the batch
+                dimension equal to the length of timesteps.
+        Returns:
+            a tensor of shape [batch_size, 1, ...] where the shape has K dims.
+        """
+
+        tensor_format = getattr(self, "tensor_format", "pt")
+        values = values.flatten()
+
+        while len(values.shape) < len(broadcast_array.shape):
+            values = values[..., None]
+        if tensor_format == "pt":
+            values = values.to(broadcast_array.device)
+
+        return values
     
     # Most of these arguments are ignored and are only present for compatibility with
     # other samples

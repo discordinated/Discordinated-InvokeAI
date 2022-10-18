@@ -254,7 +254,7 @@ class Sampler(object):
 
             if mask is not None:
                 assert x0 is not None
-                img_orig = self.model.q_sample(
+                img_orig = self.q_sample(
                     x0, ts
                 )  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1.0 - mask) * img

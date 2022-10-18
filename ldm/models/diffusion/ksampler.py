@@ -205,7 +205,8 @@ class KSampler(Sampler):
 
         # sigmas are set up in make_schedule - we take the last steps items
         total_steps = len(self.sigmas)
-        sigmas = self.sigmas[-S-1:]
+        sigmas    = self.sigmas[-S-1:]
+        timesteps = list(reversed(self.ddim_timesteps[0:S]))
 
         # x_T is variation noise. When an init image is provided (in x0) we need to add
         # more randomness to the starting image.
@@ -217,17 +218,27 @@ class KSampler(Sampler):
         else:
             x = torch.randn([batch_size, *shape], device=self.device) * sigmas[0]
 
+        if mask is not None:
+            def step_function(x,i):
+                # this almost works
+                return x0 * mask + x * (1.0-mask)
+            step_fn = step_function
+        else:
+            step_fn = None
+
         model_wrap_cfg = CFGDenoiser(self.model, threshold=threshold, warmup=max(0.8*S,S-10))
         extra_args = {
             'cond': conditioning,
             'uncond': unconditional_conditioning,
             'cond_scale': unconditional_guidance_scale,
         }
+
         print(f'>> Sampling with k_{self.schedule} starting at step {len(self.sigmas)-S-1} of {len(self.sigmas)-1} ({S} new sampling steps)')
         return (
             K.sampling.__dict__[f'sample_{self.schedule}'](
                 model_wrap_cfg, x, sigmas, extra_args=extra_args,
-                callback=route_callback
+                callback=route_callback,
+                step_function=step_fn
             ),
             None,
         )
